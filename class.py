@@ -90,6 +90,8 @@ spawn_timer = 0
 fire_rate = 30  # Dispara cada 30 frames
 clock = pygame.time.Clock()
 central_ball_life = 100  # Vida de la bola central
+show_round_message = False  # Bandera para mostrar el cartel de la ronda
+round_message_timer = 0  # Temporizador para el cartel de la ronda
 
 running = True
 while running:
@@ -101,12 +103,23 @@ while running:
     pygame.draw.rect(screen, BLACK, (center_x - 50, center_y - 30, 100, 10))  # Barra base
     pygame.draw.rect(screen, central_ball_color, (center_x - 50, center_y - 30, 100 * (central_ball_life / 100), 10))  # Vida actual
 
+    # Mostrar el mensaje de la ronda
+    if show_round_message:
+        font = pygame.font.SysFont(None, 48)
+        round_text = font.render(f"Ronda {round_num}", True, (0, 0, 0))
+        screen.blit(round_text, (WIDTH // 2 - round_text.get_width() // 2, HEIGHT // 2 - round_text.get_height() // 2))
+        round_message_timer -= 1
+        if round_message_timer <= 0:
+            show_round_message = False  # Ocultar el mensaje después de un tiempo
+
     # Generar enemigos por ronda
-    if spawn_timer <= 0:
+    if spawn_timer <= 0 and not show_round_message:
         for _ in range(round_num):
             enemies.append(Enemy())
         spawn_timer = 180  # Nueva ronda en 3 segundos
         round_num += 1  # Aumenta la dificultad
+        show_round_message = True  # Mostrar el mensaje de la nueva ronda
+        round_message_timer = 120  # Mostrar el mensaje durante 2 segundos
     spawn_timer -= 1
 
     # Disparo automático
@@ -135,6 +148,11 @@ while running:
                 break
         if not bullet.alive:
             bullets.remove(bullet)
+
+    # Contador de enemigos restantes
+    font = pygame.font.SysFont(None, 36)
+    remaining_enemies_text = font.render(f"Enemigos: {len(enemies)}", True, (0, 0, 0))
+    screen.blit(remaining_enemies_text, (WIDTH - remaining_enemies_text.get_width() - 20, 20))
 
     # Verificar si la bola central ha muerto
     if central_ball_life <= 0:

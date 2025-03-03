@@ -23,13 +23,18 @@ center_x, center_y = WIDTH // 2, HEIGHT // 2
 FPS = 60
 font = pygame.font.SysFont(None, 36)
 
-# Botón para iniciar la siguiente ronda (centrado en la parte inferior)
+# Botón para iniciar la siguiente ronda
 button_rect = pygame.Rect(WIDTH//2 - 60, HEIGHT - 80, 120, 50)
-show_round_button = True  # Bandera para mostrar el botón
+show_round_button = True
 
-# Variable para almacenar el dinero ganado
+# Botón para mejorar el disparo
+upgrade_button_rect = pygame.Rect(20, HEIGHT - 80, 180, 50)
+shot_upgrade_cost = 50  # Costo de la mejora
+shots_per_fire = 1  # Balas disparadas por vez
+
+# Dinero y recompensa
 money = 0
-MONEY_REWARD = 10  # Cantidad de dinero que se gana por enemigo eliminado
+MONEY_REWARD = 10
 
 def get_health_color(health):
     if health > 60:
@@ -68,13 +73,13 @@ class Enemy:
         self.life -= damage
         if self.life <= 0:
             self.alive = False
-            money += MONEY_REWARD  # Añadir dinero al eliminar enemigo
+            money += MONEY_REWARD
 
 class Bullet:
-    def __init__(self, target_x, target_y):
+    def __init__(self, angle):
         self.x, self.y = center_x, center_y
         self.speed = 5
-        self.angle = math.atan2(target_y - self.y, target_x - self.x)
+        self.angle = angle
         self.alive = True
 
     def move(self):
@@ -90,7 +95,17 @@ def start_round():
     global enemies, show_round_button, fire_rate
     enemies = [Enemy() for _ in range(round_num)]
     show_round_button = False
-    fire_rate = 30  # Reiniciar la velocidad de disparo
+    fire_rate = 30
+
+def fire_bullets():
+    if len(enemies) > 0:
+        closest_enemy = min(enemies, key=lambda e: math.hypot(e.x - center_x, e.y - center_y))
+        angle_to_enemy = math.atan2(closest_enemy.y - center_y, closest_enemy.x - center_x)
+        spread = math.pi / 8  # Ángulo de dispersión
+        
+        for i in range(shots_per_fire):
+            offset = (i - (shots_per_fire - 1) / 2) * spread
+            bullets.append(Bullet(angle_to_enemy + offset))
 
 # Variables de juego
 enemies = []
@@ -131,8 +146,7 @@ while running:
             bullets.remove(bullet)
 
     if len(enemies) > 0 and fire_rate <= 0:
-        closest_enemy = min(enemies, key=lambda e: math.hypot(e.x - center_x, e.y - center_y))
-        bullets.append(Bullet(closest_enemy.x, closest_enemy.y))
+        fire_bullets()
         fire_rate = 30
     fire_rate -= 1
 
@@ -140,24 +154,27 @@ while running:
         pygame.draw.rect(screen, BLACK, button_rect)
         button_text = font.render("Siguiente Ronda", True, WHITE)
         screen.blit(button_text, (button_rect.x + 10, button_rect.y + 15))
-
-    remaining_enemies_text = font.render(f"Enemigos: {len(enemies)}", True, BLACK)
-    screen.blit(remaining_enemies_text, (WIDTH - remaining_enemies_text.get_width() - 20, 20))
     
+    pygame.draw.rect(screen, BLACK, upgrade_button_rect)
+    upgrade_text = font.render("Mejorar Disparo (50$)", True, WHITE)
+    screen.blit(upgrade_text, (upgrade_button_rect.x + 10, upgrade_button_rect.y + 15))
+
     money_text = font.render(f"Dinero: {money}", True, BLACK)
     screen.blit(money_text, (WIDTH - money_text.get_width() - 20, 50))
 
-    if central_ball_life <= 0:
-        print("¡La bola central ha sido destruida!")
-        running = False
+    shots_text = font.render(f"Balas por disparo: {shots_per_fire}", True, BLACK)
+    screen.blit(shots_text, (20, 20))
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.MOUSEBUTTONDOWN and show_round_button:
-            if button_rect.collidepoint(event.pos):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if show_round_button and button_rect.collidepoint(event.pos):
                 start_round()
-
+            if upgrade_button_rect.collidepoint(event.pos) and money >= shot_upgrade_cost:
+                money -= shot_upgrade_cost
+                shots_per_fire += 1
+    
     pygame.display.flip()
     pygame.time.Clock().tick(FPS)
 

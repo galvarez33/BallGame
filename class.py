@@ -27,6 +27,10 @@ font = pygame.font.SysFont(None, 36)
 button_rect = pygame.Rect(WIDTH//2 - 60, HEIGHT - 80, 120, 50)
 show_round_button = True  # Bandera para mostrar el botón
 
+# Variable para almacenar el dinero ganado
+money = 0
+MONEY_REWARD = 10  # Cantidad de dinero que se gana por enemigo eliminado
+
 def get_health_color(health):
     if health > 60:
         return GREEN
@@ -60,9 +64,11 @@ class Enemy:
         pygame.draw.rect(screen, health_color, (self.x - 10, self.y - 15, 20 * (self.life / 100), 5))
 
     def take_damage(self, damage):
+        global money
         self.life -= damage
         if self.life <= 0:
             self.alive = False
+            money += MONEY_REWARD  # Añadir dinero al eliminar enemigo
 
 class Bullet:
     def __init__(self, target_x, target_y):
@@ -137,6 +143,9 @@ while running:
 
     remaining_enemies_text = font.render(f"Enemigos: {len(enemies)}", True, BLACK)
     screen.blit(remaining_enemies_text, (WIDTH - remaining_enemies_text.get_width() - 20, 20))
+    
+    money_text = font.render(f"Dinero: {money}", True, BLACK)
+    screen.blit(money_text, (WIDTH - money_text.get_width() - 20, 50))
 
     if central_ball_life <= 0:
         print("¡La bola central ha sido destruida!")

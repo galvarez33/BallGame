@@ -21,8 +21,12 @@ BLACK = (0, 0, 0)
 # Configuración del juego
 center_x, center_y = WIDTH // 2, HEIGHT // 2
 FPS = 60
+font = pygame.font.SysFont(None, 36)
 
-# Función para obtener el color de la barra según la vida
+# Botón para iniciar la siguiente ronda (centrado en la parte inferior)
+button_rect = pygame.Rect(WIDTH//2 - 60, HEIGHT - 80, 120, 50)
+show_round_button = True  # Bandera para mostrar el botón
+
 def get_health_color(health):
     if health > 60:
         return GREEN
@@ -31,35 +35,29 @@ def get_health_color(health):
     else:
         return RED
 
-# Clases
 class Enemy:
     def __init__(self):
         angle = random.uniform(0, 2 * math.pi)
         self.x = center_x + math.cos(angle) * 400
         self.y = center_y + math.sin(angle) * 400
-        self.speed = random.uniform(1, 2)  # Velocidad inicial de los enemigos
+        self.speed = random.uniform(1, 2)
         self.angle = math.atan2(center_y - self.y, center_x - self.x)
-        self.life = 100  # Vida inicial del enemigo
+        self.life = 100
         self.alive = True
 
     def move(self):
         self.x += math.cos(self.angle) * self.speed
         self.y += math.sin(self.angle) * self.speed
-        
-        # Aumenta la velocidad a medida que pasa el tiempo
         self.speed += 0.001
-        
         if math.hypot(self.x - center_x, self.y - center_y) < 10:
-            self.alive = False  # El enemigo ha alcanzado el centro
-            return True  # Indicar que el enemigo tocó el centro
+            self.alive = False
+            return True
 
     def draw(self):
         pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), 10)
-        
-        # Dibujar la barra de vida del enemigo
         health_color = get_health_color(self.life)
-        pygame.draw.rect(screen, BLACK, (self.x - 10, self.y - 15, 20, 5))  # Barra base
-        pygame.draw.rect(screen, health_color, (self.x - 10, self.y - 15, 20 * (self.life / 100), 5))  # Vida actual
+        pygame.draw.rect(screen, BLACK, (self.x - 10, self.y - 15, 20, 5))
+        pygame.draw.rect(screen, health_color, (self.x - 10, self.y - 15, 20 * (self.life / 100), 5))
 
     def take_damage(self, damage):
         self.life -= damage
@@ -82,89 +80,76 @@ class Bullet:
     def draw(self):
         pygame.draw.circle(screen, BLUE, (int(self.x), int(self.y)), 5)
 
+def start_round():
+    global enemies, show_round_button, fire_rate
+    enemies = [Enemy() for _ in range(round_num)]
+    show_round_button = False
+    fire_rate = 30  # Reiniciar la velocidad de disparo
+
 # Variables de juego
 enemies = []
 bullets = []
 round_num = 1
-spawn_timer = 0
-fire_rate = 30  # Dispara cada 30 frames
-clock = pygame.time.Clock()
-central_ball_life = 100  # Vida de la bola central
-show_round_message = False  # Bandera para mostrar el cartel de la ronda
-round_message_timer = 0  # Temporizador para el cartel de la ronda
-
+central_ball_life = 100
+fire_rate = 30  # Disparo cada 30 frames
 running = True
+
 while running:
     screen.fill(WHITE)
-    pygame.draw.circle(screen, (0, 0, 0), (center_x, center_y), 15)  # Bola central
+    pygame.draw.circle(screen, BLACK, (center_x, center_y), 15)
     
-    # Dibujar la vida de la bola central
     central_ball_color = get_health_color(central_ball_life)
-    pygame.draw.rect(screen, BLACK, (center_x - 50, center_y - 30, 100, 10))  # Barra base
-    pygame.draw.rect(screen, central_ball_color, (center_x - 50, center_y - 30, 100 * (central_ball_life / 100), 10))  # Vida actual
+    pygame.draw.rect(screen, BLACK, (center_x - 50, center_y - 30, 100, 10))
+    pygame.draw.rect(screen, central_ball_color, (center_x - 50, center_y - 30, 100 * (central_ball_life / 100), 10))
 
-    # Mostrar el mensaje de la ronda
-    if show_round_message:
-        font = pygame.font.SysFont(None, 48)
-        round_text = font.render(f"Ronda {round_num}", True, (0, 0, 0))
-        screen.blit(round_text, (WIDTH // 2 - round_text.get_width() // 2, HEIGHT // 2 - round_text.get_height() // 2))
-        round_message_timer -= 1
-        if round_message_timer <= 0:
-            show_round_message = False  # Ocultar el mensaje después de un tiempo
+    if not enemies and not show_round_button:
+        show_round_button = True
+        round_num += 1
 
-    # Generar enemigos por ronda
-    if spawn_timer <= 0 and not show_round_message:
-        for _ in range(round_num):
-            enemies.append(Enemy())
-        spawn_timer = 180  # Nueva ronda en 3 segundos
-        round_num += 1  # Aumenta la dificultad
-        show_round_message = True  # Mostrar el mensaje de la nueva ronda
-        round_message_timer = 120  # Mostrar el mensaje durante 2 segundos
-    spawn_timer -= 1
-
-    # Disparo automático
-    if len(enemies) > 0 and fire_rate <= 0:
-        closest_enemy = min(enemies, key=lambda e: math.hypot(e.x - center_x, e.y - center_y))
-        bullets.append(Bullet(closest_enemy.x, closest_enemy.y))
-        fire_rate = 30  # Reinicia la velocidad de disparo
-    fire_rate -= 1
-
-    # Actualizar enemigos
     for enemy in enemies[:]:
         if enemy.move():
-            central_ball_life -= 10  # La bola central pierde un 10% de su vida al tocarla
+            central_ball_life -= 10
         enemy.draw()
         if not enemy.alive:
             enemies.remove(enemy)
 
-    # Actualizar balas
     for bullet in bullets[:]:
         bullet.move()
         bullet.draw()
         for enemy in enemies[:]:
             if math.hypot(bullet.x - enemy.x, bullet.y - enemy.y) < 10:
-                enemy.take_damage(50)  # Enemigos reciben 50 de daño al ser alcanzados por la bala
+                enemy.take_damage(50)
                 bullets.remove(bullet)
                 break
         if not bullet.alive:
             bullets.remove(bullet)
 
-    # Contador de enemigos restantes
-    font = pygame.font.SysFont(None, 36)
-    remaining_enemies_text = font.render(f"Enemigos: {len(enemies)}", True, (0, 0, 0))
+    if len(enemies) > 0 and fire_rate <= 0:
+        closest_enemy = min(enemies, key=lambda e: math.hypot(e.x - center_x, e.y - center_y))
+        bullets.append(Bullet(closest_enemy.x, closest_enemy.y))
+        fire_rate = 30
+    fire_rate -= 1
+
+    if show_round_button:
+        pygame.draw.rect(screen, BLACK, button_rect)
+        button_text = font.render("Siguiente Ronda", True, WHITE)
+        screen.blit(button_text, (button_rect.x + 10, button_rect.y + 15))
+
+    remaining_enemies_text = font.render(f"Enemigos: {len(enemies)}", True, BLACK)
     screen.blit(remaining_enemies_text, (WIDTH - remaining_enemies_text.get_width() - 20, 20))
 
-    # Verificar si la bola central ha muerto
     if central_ball_life <= 0:
         print("¡La bola central ha sido destruida!")
         running = False
 
-    # Manejo de eventos
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN and show_round_button:
+            if button_rect.collidepoint(event.pos):
+                start_round()
 
     pygame.display.flip()
-    clock.tick(FPS)
+    pygame.time.Clock().tick(FPS)
 
 pygame.quit()

@@ -101,11 +101,16 @@ def fire_bullets():
     if len(enemies) > 0:
         closest_enemy = min(enemies, key=lambda e: math.hypot(e.x - center_x, e.y - center_y))
         angle_to_enemy = math.atan2(closest_enemy.y - center_y, closest_enemy.x - center_x)
-        spread = math.pi / 8  # Ángulo de dispersión
         
+        delay_distance = 10  # Distancia entre cada bala en la misma trayectoria
+
         for i in range(shots_per_fire):
-            offset = (i - (shots_per_fire - 1) / 2) * spread
-            bullets.append(Bullet(angle_to_enemy + offset))
+            bullet = Bullet(angle_to_enemy)
+            bullet.x -= math.cos(angle_to_enemy) * delay_distance * i
+            bullet.y -= math.sin(angle_to_enemy) * delay_distance * i
+            bullets.append(bullet)
+
+
 
 # Variables de juego
 enemies = []

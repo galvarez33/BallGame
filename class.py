@@ -135,6 +135,8 @@ while running:
     for enemy in enemies[:]:
         if enemy.move():
             central_ball_life -= 10
+            if central_ball_life <= 0:
+                running = False 
         enemy.draw()
         if not enemy.alive:
             enemies.remove(enemy)
@@ -156,13 +158,17 @@ while running:
     fire_rate -= 1
 
     if show_round_button:
-        pygame.draw.rect(screen, BLACK, button_rect)
         button_text = font.render("Siguiente Ronda", True, WHITE)
-        screen.blit(button_text, (button_rect.x + 10, button_rect.y + 15))
+        button_rect = button_text.get_rect(center=(WIDTH//2, HEIGHT - 60))
+        pygame.draw.rect(screen, BLACK, button_rect.inflate(20, 10))  # Ajuste de margen
+        screen.blit(button_text, button_rect)
+
     
-    pygame.draw.rect(screen, BLACK, upgrade_button_rect)
     upgrade_text = font.render("Mejorar Disparo (50$)", True, WHITE)
-    screen.blit(upgrade_text, (upgrade_button_rect.x + 10, upgrade_button_rect.y + 15))
+    upgrade_button_rect = upgrade_text.get_rect(topleft=(20, HEIGHT - 80))
+    pygame.draw.rect(screen, BLACK, upgrade_button_rect.inflate(20, 10))  # Ajuste de margen
+    screen.blit(upgrade_text, upgrade_button_rect)
+
 
     money_text = font.render(f"Dinero: {money}", True, BLACK)
     screen.blit(money_text, (WIDTH - money_text.get_width() - 20, 50))
